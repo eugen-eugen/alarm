@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Endless Hour Wheel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .wheel-container {
+      width: 100px;
+      height: 420px;
+      overflow: hidden;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: #fff;
+      position: relative;
+      margin-bottom: 24px;
+    }
+    .wheel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      transition: top 0.2s cubic-bezier(.4,0,.2,1);
+    }
+    .hour {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      color: #333;
+      transition: font-size 0.2s, opacity 0.2s;
+      opacity: 0.7;
+    }
+    .hour.selected {
+      color: #1976d2;
+      font-weight: bold;
+      background: #e3f2fd;
+      border-radius: 8px;
+      font-size: 2.2em;
+      opacity: 1;
+      box-shadow: 0 2px 8px rgba(25,118,210,0.08);
+    }
+    .hour.dist1 {
+      font-size: 1.5em;
+      opacity: 0.85;
+    }
+    .hour.dist2 {
+      font-size: 1.1em;
+      opacity: 0.7;
+    }
+    .hour.dist3 {
+      font-size: 0.8em;
+      opacity: 0.5;
+    }
+    .arrow {
+      font-size: 2em;
+      color: #1976d2;
+      cursor: pointer;
+      user-select: none;
+      margin: 0 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="arrow" id="up">&#9650;</div>
+  <div class="wheel-container">
+    <div class="wheel" id="wheel"></div>
+  </div>
+  <div class="arrow" id="down">&#9660;</div>
+  <script>
+    const wheel = document.getElementById('wheel');
+    const up = document.getElementById('up');
+    const down = document.getElementById('down');
+    const hours = Array.from({length: 24}, (_, i) => i);
+    let selected = 0;
+    let playClick = false;
+
+    function playClickSound() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.02, ctx.sampleRate); // 20ms
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        // White noise, fade out quickly
+        data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      }
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.3;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start();
+      source.onended = () => ctx.close();
+    }
+
+    function renderWheel() {
+      // Show 3 above, selected, 3 below
+      let html = '';
+      for (let offset = -3; offset <= 3; offset++) {
+        let hour = (selected + offset + 24) % 24;
+        let cls = 'hour';
+        if (offset === 0) cls += ' selected';
+        else cls += ` dist${Math.abs(offset)}`;
+        html += `<div class="${cls}">${hour.toString().padStart(2,'0')}</div>`;
+      }
+      wheel.innerHTML = html;
+      wheel.style.top = '0px';
+      if (playClick) {
+        playClickSound();
+        playClick = false;
+      }
+    }
+    function moveWheel(dir) {
+      // Animate wheel
+      wheel.style.top = dir === 'up' ? '-60px' : '60px';
+      setTimeout(() => {
+        selected = (selected + (dir === 'up' ? 1 : -1) + 24) % 24;
+        playClick = true;
+        renderWheel();
+      }, 150);
+    }
+    up.addEventListener('click', () => moveWheel('up'));
+    down.addEventListener('click', () => moveWheel('down'));
+
+    let touchStartY = null;
+
+    wheel.parentElement.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+      }
+    });
+
+    wheel.parentElement.addEventListener('touchmove', (e) => {
+      if (touchStartY === null) return;
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - touchStartY;
+      // Prevent scrolling
+      if (Math.abs(deltaY) > 10) e.preventDefault();
+    });
+
+    wheel.parentElement.addEventListener('touchend', (e) => {
+      if (touchStartY === null) return;
+      const endY = (e.changedTouches[0] || e.touches[0]).clientY;
+      const deltaY = endY - touchStartY;
+      if (Math.abs(deltaY) > 30) {
+        if (deltaY < 0) {
+          moveWheel('up');    // swipe up
+        } else {
+          moveWheel('down');  // swipe down
+        }
+      }
+      touchStartY = null;
+    });
+
+    renderWheel();
+  </script>
+</body>
+</html>
