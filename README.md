@@ -10,6 +10,10 @@ A simple web-based time picker featuring endless scrolling wheels for hours and 
 - **Click sound effect** for feedback
 - **Vanilla JS & CSS** (no dependencies)
 
+## Inspiration
+
+This project was inspired (and amused) by the hour wheel in the iOS Alarm app, which is not endless but amusingly stops somewhere at 16 pm.
+
 ## Usage
 
 Open [`index.html`](index.html) in your browser.
